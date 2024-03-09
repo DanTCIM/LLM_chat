@@ -6,6 +6,15 @@ __pycache__/
 # C extensions
 *.so
 
+# Draft files
+*XXX*
+
+# Secret file
+secrets.toml
+
+# Mac file
+.DS_Store
+
 # Distribution / packaging
 .Python
 build/
