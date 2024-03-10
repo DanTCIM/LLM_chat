@@ -145,7 +145,7 @@ with st.sidebar:
 # Generate a new response if last message is not from assistant
 if st.session_state.messages[-1]["role"] != "ai":
     with st.chat_message("ai"):
-        with st.spinner("GPT-4 running..."):
+        with st.spinner("GPT running..."):
             response_generator = get_completion_history(
                 user_prompt,
                 session_state=st.session_state.messages,
