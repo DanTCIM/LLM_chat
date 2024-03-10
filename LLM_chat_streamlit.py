@@ -105,9 +105,7 @@ for message in st.session_state.messages:
 
 # User-provided prompt
 if user_prompt := st.chat_input("What is your question?"):
-    st.session_state.messages.append(
-        {"role": "user", "content": user_prompt, "type": "text"}
-    )
+    st.session_state.messages.append({"role": "user", "content": user_prompt})
     with st.chat_message("user"):
         st.write(user_prompt)
 
@@ -123,9 +121,7 @@ questions = [
 for question in questions:
     if st.sidebar.button(question):
         user_prompt = question
-        st.session_state.messages.append(
-            {"role": "user", "content": user_prompt, "type": "text"}
-        )
+        st.session_state.messages.append({"role": "user", "content": user_prompt})
         with st.chat_message("user"):
             st.write(user_prompt)
 
