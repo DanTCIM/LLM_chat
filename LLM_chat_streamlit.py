@@ -34,6 +34,7 @@ user_temperature = st.sidebar.slider(
 
 
 # Define a function to get completion based on user input
+## UNUSED
 def get_completion(user_input, system_message=user_system_message):
     completion = client.chat.completions.create(
         model=model_name,
