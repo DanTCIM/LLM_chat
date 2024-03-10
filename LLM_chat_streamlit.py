@@ -90,6 +90,7 @@ def get_completion_history(
 
     ai_message = chain.invoke(message_dict)
     return ai_message.content
+    # yield chain.stream(message_dict)
 
 
 # Initialize chat history
@@ -148,11 +149,14 @@ with st.sidebar:
 # Generate a new response if last message is not from assistant
 if st.session_state.messages[-1]["role"] != "ai":
     with st.chat_message("ai"):
-        response = get_completion_history(
-            user_prompt,
-            session_state=st.session_state.messages,
-            system_message=user_system_message,
-        )
-        st.write(response)
-    message = {"role": "ai", "content": response, "type": "text"}
+        with st.spinner("GPT-4 running..."):
+            response_generator = get_completion_history(
+                user_prompt,
+                session_state=st.session_state.messages,
+                system_message=user_system_message,
+            )
+
+            st.write(response_generator)
+
+    message = {"role": "ai", "content": response_generator}
     st.session_state.messages.append(message)
