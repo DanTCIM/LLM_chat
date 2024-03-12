@@ -1,10 +1,11 @@
 # Import
 import streamlit as st
-from openai import OpenAI
 import os
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import AIMessage, HumanMessage
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.chains import ConversationChain
+from langchain.memory import ConversationBufferMemory
+from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
+from langchain.callbacks.base import BaseCallbackHandler
 
 # Setup title
 st.title("Management & Political Consulting")
@@ -12,102 +13,81 @@ st.write("Structured, creative problem-solving with user collaboration")
 
 # Set OpenAI API key from Streamlit secrets
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # Define variables for inputs
 default_system_message = "You are a helpful assistant."
-model_name = "gpt-4-turbo-preview"  ##gpt-3.5-turbo
+model_list = ["gpt-4-turbo-preview", "gpt-3.5-turbo"]
 
-user_system_message = st.sidebar.text_area(
-    label="System Instruction",
-    value=default_system_message,
-    help="Enter your system instructions here.",
+with st.sidebar:
+    with st.expander("⚙️ LLM setup"):
+        model_name = st.selectbox(
+            "Select model",
+            model_list,
+            help="GPT3.5 is way faster than GPT-4",
+        )
+        user_system_message = st.text_area(
+            label="System Instruction",
+            value=default_system_message,
+            help="Enter your system instructions here.",
+        )
+        user_temperature = st.slider(
+            "Temperature",
+            min_value=0.0,
+            max_value=2.0,
+            value=0.0,
+            step=0.25,
+            help="Set to 0.0 for deterministic responses.",
+        )
+
+
+# Set up conversation chain
+class StreamHandler(BaseCallbackHandler):
+    def __init__(
+        self, container: st.delta_generator.DeltaGenerator, initial_text: str = ""
+    ):
+        self.container = container
+        self.text = initial_text
+
+    def on_llm_new_token(self, token: str, **kwargs) -> None:
+        self.text += token
+        self.container.markdown(self.text)
+
+
+msgs = StreamlitChatMessageHistory()
+memory = ConversationBufferMemory(
+    chat_memory=msgs,
+    return_messages=True,
 )
-user_temperature = st.sidebar.slider(
-    "Temperature",
-    min_value=0.0,
-    max_value=2.0,
-    value=0.0,
-    step=0.25,
-    help="Set to 0.0 for deterministic responses.",
+
+llm = ChatOpenAI(
+    model_name=model_name,
+    temperature=user_temperature,
+    streaming=True,
 )
+conversation_chain = ConversationChain(llm=llm, verbose=True, memory=memory)
 
 
-# Define a function to get completion based on user input
-## UNUSED
-def get_completion(user_input, system_message=user_system_message):
-    completion = client.chat.completions.create(
-        model=model_name,
-        messages=[
-            {
-                "role": "system",
-                "content": system_message,
-            },
-            {"role": "user", "content": user_input},
-        ],
-        temperature=user_temperature,
-    )
-    return completion.choices[0].message.content
+# Initialize the chat history
+def clear_chat_history():
+    msgs.clear()
+    msgs.add_ai_message("What is your question?")
 
 
-# Define functions to get completion based on user input and history of chat
-def transform_messages(messages):
-    transformed_list = []
-    for message in messages:
-        if message["role"] == "user":
-            transformed_list.append(HumanMessage(content=message["content"]))
-        elif message["role"] == "ai":
-            transformed_list.append(AIMessage(content=message["content"]))
-    return transformed_list
+if len(msgs.messages) == 0:
+    clear_chat_history()
 
+# Show the chat history
+avatars = {"human": "user", "ai": "assistant"}
+for msg in msgs.messages:
+    st.chat_message(avatars[msg.type]).write(msg.content)
 
-def get_completion_history(
-    user_input,
-    session_state=[],
-    system_message=user_system_message,
-):
+# User asks a question
+if user_query := st.chat_input(placeholder="What is your question?"):
+    st.chat_message("user").write(user_query)
 
-    chat = ChatOpenAI(model=model_name, temperature=user_temperature)
-
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                system_message,
-            ),
-            MessagesPlaceholder(variable_name="messages"),
-        ]
-    )
-
-    chain = prompt | chat
-    message_history = []
-    message_history = transform_messages(session_state)
-    message_history.append(HumanMessage(content=user_input))
-
-    message_dict = {
-        "messages": message_history,
-    }
-
-    ai_message = chain.invoke(message_dict)
-    return ai_message.content
-    # yield chain.stream(message_dict)
-
-
-# Initialize chat history
-if "messages" not in st.session_state.keys():
-    st.session_state.messages = [{"role": "ai", "content": "What is your question?"}]
-
-# Display chat messages from history on app rerun
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-
-# User-provided prompt
-if user_prompt := st.chat_input("What is your question?"):
-    st.session_state.messages.append({"role": "user", "content": user_prompt})
-    with st.chat_message("user"):
-        st.write(user_prompt)
+    with st.chat_message("assistant"):
+        stream_handler = StreamHandler(st.empty())
+        response = conversation_chain.run(user_query, callbacks=[stream_handler])
 
 # Use a single block for handling different user prompts
 questions = [
@@ -120,39 +100,18 @@ questions = [
 # Generate buttons for each question
 for question in questions:
     if st.sidebar.button(question):
-        user_prompt = question
-        st.session_state.messages.append({"role": "user", "content": user_prompt})
+        user_query = question
         with st.chat_message("user"):
-            st.write(user_prompt)
+            st.write(question)
+        with st.chat_message("assistant"):
+            stream_handler = StreamHandler(st.empty())
+            response = conversation_chain.run(question, callbacks=[stream_handler])
+
 
 with st.sidebar:
-
-    def clear_chat_history():
-        st.session_state.messages = [
-            {
-                "role": "ai",
-                "content": "What is your question?",
-            }
-        ]
-
     st.button(
         "Clear Chat",
         help="Clear chat history",
-        on_click=clear_chat_history,
+        on_click=clear_chat_history(),
         use_container_width=True,
     )
-
-# Generate a new response if last message is not from assistant
-if st.session_state.messages[-1]["role"] != "ai":
-    with st.chat_message("ai"):
-        with st.spinner("GPT running..."):
-            response_generator = get_completion_history(
-                user_prompt,
-                session_state=st.session_state.messages,
-                system_message=user_system_message,
-            )
-
-            st.write(response_generator)
-
-    message = {"role": "ai", "content": response_generator}
-    st.session_state.messages.append(message)
