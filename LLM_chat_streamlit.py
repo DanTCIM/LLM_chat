@@ -68,13 +68,8 @@ conversation_chain = ConversationChain(llm=llm, verbose=True, memory=memory)
 
 
 # Initialize the chat history
-def clear_chat_history():
-    msgs.clear()
-    msgs.add_ai_message("What is your question?")
-
-
 if len(msgs.messages) == 0:
-    clear_chat_history()
+    msgs.add_ai_message("What is your question?")
 
 # Show the chat history
 avatars = {"human": "user", "ai": "assistant"}
@@ -109,9 +104,14 @@ for question in questions:
 
 
 with st.sidebar:
+
+    def clear_chat_history():
+        msgs.clear()
+        msgs.add_ai_message("What is your question?")
+
     st.button(
         "Clear Chat",
         help="Clear chat history",
-        on_click=clear_chat_history(),
+        on_click=clear_chat_history,
         use_container_width=True,
     )
