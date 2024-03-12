@@ -6,6 +6,7 @@ from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
 from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
 from langchain.callbacks.base import BaseCallbackHandler
+from langchain.prompts.prompt import PromptTemplate
 
 # Setup title
 st.title("Management & Political Consulting")
@@ -64,8 +65,22 @@ llm = ChatOpenAI(
     temperature=user_temperature,
     streaming=True,
 )
-conversation_chain = ConversationChain(llm=llm, verbose=True, memory=memory)
 
+template = (
+    user_system_message
+    + """
+The following is a conversation between a human and an AI.
+
+Current conversation:
+{history}
+human: {input}
+ai:"""
+)
+PROMPT = PromptTemplate(input_variables=["history", "input"], template=template)
+
+conversation_chain = ConversationChain(
+    prompt=PROMPT, llm=llm, verbose=True, memory=memory
+)
 
 # Initialize the chat history
 if len(msgs.messages) == 0:
@@ -81,6 +96,7 @@ if user_query := st.chat_input(placeholder="What is your question?"):
     st.chat_message("user").write(user_query)
 
     with st.chat_message("assistant"):
+
         stream_handler = StreamHandler(st.empty())
         response = conversation_chain.run(user_query, callbacks=[stream_handler])
 
@@ -95,10 +111,10 @@ questions = [
 # Generate buttons for each question
 for question in questions:
     if st.sidebar.button(question):
-        user_query = question
         with st.chat_message("user"):
             st.write(question)
         with st.chat_message("assistant"):
+
             stream_handler = StreamHandler(st.empty())
             response = conversation_chain.run(question, callbacks=[stream_handler])
 
