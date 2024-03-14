@@ -2,29 +2,45 @@
 import streamlit as st
 import os
 from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
-from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
+from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.prompts.prompt import PromptTemplate
 
-# Setup title
+# Setup page config and title
+st.set_page_config(page_title="MP Consulting", page_icon="📖")
 st.title("Management & Political Consulting")
 st.write("Structured, creative problem-solving with user collaboration")
 
 # Set OpenAI API key from Streamlit secrets
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+os.environ["ANTHROPIC_API_ID"] = st.secrets["ANTHROPIC_API_KEY"]
 
 # Define variables for inputs
 default_system_message = "You are a helpful assistant."
-model_list = ["gpt-4-turbo-preview", "gpt-3.5-turbo"]
+
+model_list = [
+    "gpt-3.5-turbo",  # mid
+    "gpt-4-turbo-preview",  # large
+    "claude-3-sonnet-20240229",  # mid
+    "claude-3-opus-20240229",  # large
+]
+
+model_dic = {
+    "gpt-3.5-turbo": "OpenAI",
+    "gpt-4-turbo-preview": "OpenAI",
+    "claude-3-opus-20240229": "Anthropic",
+    "claude-3-sonnet-20240229": "Anthropic",
+}
 
 with st.sidebar:
     with st.expander("⚙️ LLM setup"):
         model_name = st.selectbox(
             "Select model",
             model_list,
-            help="GPT3.5 is way faster than GPT-4",
+            # help="GPT3.5 is way faster than GPT-4",
         )
         user_system_message = st.text_area(
             label="System Instruction",
@@ -60,11 +76,18 @@ memory = ConversationBufferMemory(
     return_messages=True,
 )
 
-llm = ChatOpenAI(
-    model_name=model_name,
-    temperature=user_temperature,
-    streaming=True,
-)
+if model_dic[model_name] == "Anthropic":
+    llm = ChatAnthropic(
+        model=model_name,
+        temperature=user_temperature,
+        streaming=True,
+    )
+else:
+    llm = ChatOpenAI(
+        model_name=model_name,
+        temperature=user_temperature,
+        streaming=True,
+    )
 
 template = (
     user_system_message
