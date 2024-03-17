@@ -3,6 +3,7 @@ import streamlit as st
 import os
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
+from langchain_groq import ChatGroq
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
@@ -17,6 +18,7 @@ st.write("Structured, creative problem-solving with user collaboration")
 # Set OpenAI API key from Streamlit secrets
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 os.environ["ANTHROPIC_API_ID"] = st.secrets["ANTHROPIC_API_KEY"]
+os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
 
 # Define variables for inputs
 default_system_message = "You are a helpful assistant."
@@ -26,6 +28,7 @@ model_list = [
     "gpt-4-turbo-preview",  # large
     "claude-3-sonnet-20240229",  # mid
     "claude-3-opus-20240229",  # large
+    "mixtral-8x7b-32768",  # fast
 ]
 
 model_dic = {
@@ -33,6 +36,7 @@ model_dic = {
     "gpt-4-turbo-preview": "OpenAI",
     "claude-3-opus-20240229": "Anthropic",
     "claude-3-sonnet-20240229": "Anthropic",
+    "mixtral-8x7b-32768": "Groq",
 }
 
 with st.sidebar:
@@ -79,6 +83,12 @@ memory = ConversationBufferMemory(
 if model_dic[model_name] == "Anthropic":
     llm = ChatAnthropic(
         model=model_name,
+        temperature=user_temperature,
+        streaming=True,
+    )
+elif model_dic[model_name] == "Groq":
+    llm = ChatGroq(
+        model_name=model_name,
         temperature=user_temperature,
         streaming=True,
     )
