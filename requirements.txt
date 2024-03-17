@@ -5,3 +5,4 @@ langchain_openai
 langchain-anthropic
 langchain-core
 langchain-community
+langchain-groq
