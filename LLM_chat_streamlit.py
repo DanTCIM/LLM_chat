@@ -169,19 +169,14 @@ questions = [
 ]
 
 # Generate buttons for each question
-with st.sidebar:
-    with st.expander("Preset questions"):
-        for question in questions:
-            if st.button(question):
-                with st.chat_message("user"):
-                    st.write(question)
-                with st.chat_message("assistant"):
+for question in questions:
+    if st.sidebar.button(question):
+        with st.chat_message("user"):
+            st.write(question)
+        with st.chat_message("assistant"):
 
-                    stream_handler = StreamHandler(st.empty())
-                    response = conversation_chain.run(
-                        question, callbacks=[stream_handler]
-                    )
-
+            stream_handler = StreamHandler(st.empty())
+            response = conversation_chain.run(question, callbacks=[stream_handler])
 
 with st.sidebar:
 
