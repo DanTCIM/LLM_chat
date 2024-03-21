@@ -1,6 +1,7 @@
 # Import
 import streamlit as st
 import os
+import json
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_groq import ChatGroq
@@ -20,9 +21,22 @@ os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 os.environ["ANTHROPIC_API_ID"] = st.secrets["ANTHROPIC_API_KEY"]
 os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
 
-# Define variables for inputs
-default_system_message = "You are a helpful assistant."
 
+# Define class
+# Set up conversation chain
+class StreamHandler(BaseCallbackHandler):
+    def __init__(
+        self, container: st.delta_generator.DeltaGenerator, initial_text: str = ""
+    ):
+        self.container = container
+        self.text = initial_text
+
+    def on_llm_new_token(self, token: str, **kwargs) -> None:
+        self.text += token
+        self.container.markdown(self.text)
+
+
+# Define variables for inputs
 model_list = [
     "gpt-3.5-turbo",  # mid
     "gpt-4-turbo-preview",  # large
@@ -39,18 +53,42 @@ model_dic = {
     "mixtral-8x7b-32768": "Groq",
 }
 
+
+@st.cache_data
+def load_prompts():
+    with open("prompt.json") as f:
+        prompts = json.load(f)
+    # Extract the list of prompt names
+    prompt_names = [p["prompt_name"] for p in prompts]
+
+    # Create a dictionary to store the prompts
+    prompts_dict = {p["prompt_name"]: p for p in prompts}
+
+    return prompts_dict, prompt_names
+
+
+prompts_dict, prompt_names = load_prompts()
+
 with st.sidebar:
-    with st.expander("⚙️ LLM setup"):
+    with st.expander("⚙️ LLM setup", expanded=True):
         model_name = st.selectbox(
             "Select model",
             model_list,
-            # help="GPT3.5 is way faster than GPT-4",
         )
+
+        prompt_name = st.selectbox(
+            "Select system prompt",
+            prompt_names,
+        )
+        selected_prompt = prompts_dict[prompt_name]
+        st.write("➡️ " + selected_prompt["description"])
+
         user_system_message = st.text_area(
-            label="System Instruction",
-            value=default_system_message,
-            help="Enter your system instructions here.",
+            label="System prompt",
+            value=selected_prompt["prompt"],
+            help="Feel free to update system prompt.",
         )
+
         user_temperature = st.slider(
             "Temperature",
             min_value=0.0,
@@ -59,20 +97,6 @@ with st.sidebar:
             step=0.25,
             help="Set to 0.0 for deterministic responses.",
         )
-
-
-# Set up conversation chain
-class StreamHandler(BaseCallbackHandler):
-    def __init__(
-        self, container: st.delta_generator.DeltaGenerator, initial_text: str = ""
-    ):
-        self.container = container
-        self.text = initial_text
-
-    def on_llm_new_token(self, token: str, **kwargs) -> None:
-        self.text += token
-        self.container.markdown(self.text)
-
 
 msgs = StreamlitChatMessageHistory()
 memory = ConversationBufferMemory(
@@ -112,7 +136,10 @@ ai:"""
 PROMPT = PromptTemplate(input_variables=["history", "input"], template=template)
 
 conversation_chain = ConversationChain(
-    prompt=PROMPT, llm=llm, verbose=True, memory=memory
+    prompt=PROMPT,
+    llm=llm,
+    verbose=True,
+    memory=memory,
 )
 
 # Initialize the chat history
@@ -142,14 +169,18 @@ questions = [
 ]
 
 # Generate buttons for each question
-for question in questions:
-    if st.sidebar.button(question):
-        with st.chat_message("user"):
-            st.write(question)
-        with st.chat_message("assistant"):
+with st.sidebar:
+    with st.expander("Preset questions"):
+        for question in questions:
+            if st.button(question):
+                with st.chat_message("user"):
+                    st.write(question)
+                with st.chat_message("assistant"):
 
-            stream_handler = StreamHandler(st.empty())
-            response = conversation_chain.run(question, callbacks=[stream_handler])
+                    stream_handler = StreamHandler(st.empty())
+                    response = conversation_chain.run(
+                        question, callbacks=[stream_handler]
+                    )
 
 
 with st.sidebar:
