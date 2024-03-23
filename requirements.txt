@@ -6,4 +6,3 @@ langchain-anthropic
 langchain-core
 langchain-community
 langchain-groq
-tabulate
