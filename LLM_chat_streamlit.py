@@ -39,18 +39,18 @@ class StreamHandler(BaseCallbackHandler):
 # Define variables for inputs
 model_list = [
     "gpt-3.5-turbo",  # mid
-    "gpt-4-turbo-preview",  # large
+    "gpt-4-turbo",  # large
     "claude-3-sonnet-20240229",  # mid
     "claude-3-opus-20240229",  # large
-    "mixtral-8x7b-32768",  # fast
+    "llama3-70b-8192",  # fast
 ]
 
 model_dic = {
     "gpt-3.5-turbo": "OpenAI",
-    "gpt-4-turbo-preview": "OpenAI",
+    "gpt-4-turbo": "OpenAI",
     "claude-3-opus-20240229": "Anthropic",
     "claude-3-sonnet-20240229": "Anthropic",
-    "mixtral-8x7b-32768": "Groq",
+    "llama3-70b-8192": "Groq",
 }
 
 
