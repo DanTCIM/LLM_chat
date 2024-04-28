@@ -12,9 +12,9 @@ from langchain.callbacks.base import BaseCallbackHandler
 from langchain.prompts.prompt import PromptTemplate
 
 # Setup page config and title
-st.set_page_config(page_title="MP Consulting", page_icon="📖")
-st.title("Management & Political Consulting")
-st.write("Structured, creative problem-solving with user collaboration")
+st.set_page_config(page_title="Prompt_Tester", page_icon="📖")
+st.title("Test Prompts")
+st.write("Try different prompts or make your own!")
 
 # Set OpenAI API key from Streamlit secrets
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
