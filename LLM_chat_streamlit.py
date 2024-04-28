@@ -160,23 +160,23 @@ if user_query := st.chat_input(placeholder="What is your question?"):
         stream_handler = StreamHandler(st.empty())
         response = conversation_chain.run(user_query, callbacks=[stream_handler])
 
-# Use a single block for handling different user prompts
-questions = [
-    "I have business concerns. Do you want to listen?",
-    "Can you analyze this policy proposal?",
-    "What digital marketing strategies should we employ for our campaign?",
-    "How can we optimize our election strategy?",
-]
+# # Use a single block for handling different user prompts
+# questions = [
+#     "I have business concerns. Do you want to listen?",
+#     "Can you analyze this policy proposal?",
+#     "What digital marketing strategies should we employ for our campaign?",
+#     "How can we optimize our election strategy?",
+# ]
 
-# Generate buttons for each question
-for question in questions:
-    if st.sidebar.button(question):
-        with st.chat_message("user"):
-            st.write(question)
-        with st.chat_message("assistant"):
+# # Generate buttons for each question
+# for question in questions:
+#     if st.sidebar.button(question):
+#         with st.chat_message("user"):
+#             st.write(question)
+#         with st.chat_message("assistant"):
 
-            stream_handler = StreamHandler(st.empty())
-            response = conversation_chain.run(question, callbacks=[stream_handler])
+#             stream_handler = StreamHandler(st.empty())
+#             response = conversation_chain.run(question, callbacks=[stream_handler])
 
 with st.sidebar:
 
