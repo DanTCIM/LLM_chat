@@ -52,7 +52,7 @@ def load_prompts():
 
 def setup_model_param(prompts_dict, prompt_names):
     with st.sidebar:
-        with st.expander("⚙️ LLM setup", expanded=True):
+        with st.expander("**⚙️ LLM setup**", expanded=True):
             model_name = st.selectbox(
                 "Select model",
                 model_list,
@@ -161,7 +161,7 @@ def clear_chat_button(msgs):
 
 def sidebar_faq():
     with st.sidebar:
-        with st.expander("FAQ", expanded=True):
+        with st.expander("**FAQ**", expanded=True):
             st.write(
                 "**Llama 3:** Meta's open-source flagship model. Llama3 is deployed by Groq (https://groq.com/), showcasing its impressive speed."
             )
