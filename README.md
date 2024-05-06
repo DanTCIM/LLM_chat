@@ -1,2 +1,2 @@
 # LLM_chat
-Management &amp; Political Consulting
+https://llm-prompt-playground.streamlit.app/
