@@ -11,19 +11,24 @@ from langchain_community.chat_message_histories import StreamlitChatMessageHisto
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.prompts.prompt import PromptTemplate
 
-# Setup page config and title
-st.set_page_config(page_title="Prompt_Tester", page_icon="📖")
-st.title("Test Prompts")
-st.write("Try different prompts or make your own!")
+# Define variables for inputs
+model_list = [
+    # "gpt-3.5-turbo",  # mid
+    "llama3-70b-8192",  # fast
+    "gpt-4-turbo",  # large
+    # "claude-3-sonnet-20240229",  # mid
+    "claude-3-opus-20240229",  # large
+]
 
-# Set OpenAI API key from Streamlit secrets
-os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-os.environ["ANTHROPIC_API_ID"] = st.secrets["ANTHROPIC_API_KEY"]
-os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
+model_dic = {
+    "gpt-3.5-turbo": "OpenAI",
+    "gpt-4-turbo": "OpenAI",
+    "claude-3-opus-20240229": "Anthropic",
+    "claude-3-sonnet-20240229": "Anthropic",
+    "llama3-70b-8192": "Groq",
+}
 
 
-# Define class
-# Set up conversation chain
 class StreamHandler(BaseCallbackHandler):
     def __init__(
         self, container: st.delta_generator.DeltaGenerator, initial_text: str = ""
@@ -36,157 +41,190 @@ class StreamHandler(BaseCallbackHandler):
         self.container.markdown(self.text)
 
 
-# Define variables for inputs
-model_list = [
-    "gpt-3.5-turbo",  # mid
-    "gpt-4-turbo",  # large
-    "claude-3-sonnet-20240229",  # mid
-    "claude-3-opus-20240229",  # large
-    "llama3-70b-8192",  # fast
-]
-
-model_dic = {
-    "gpt-3.5-turbo": "OpenAI",
-    "gpt-4-turbo": "OpenAI",
-    "claude-3-opus-20240229": "Anthropic",
-    "claude-3-sonnet-20240229": "Anthropic",
-    "llama3-70b-8192": "Groq",
-}
-
-
 @st.cache_data
 def load_prompts():
     with open("prompt.json") as f:
         prompts = json.load(f)
-    # Extract the list of prompt names
     prompt_names = [p["prompt_name"] for p in prompts]
-
-    # Create a dictionary to store the prompts
     prompts_dict = {p["prompt_name"]: p for p in prompts}
-
     return prompts_dict, prompt_names
 
 
-prompts_dict, prompt_names = load_prompts()
+def setup_model_param(prompts_dict, prompt_names):
+    with st.sidebar:
+        with st.expander("⚙️ LLM setup", expanded=True):
+            model_name = st.selectbox(
+                "Select model",
+                model_list,
+            )
 
-with st.sidebar:
-    with st.expander("⚙️ LLM setup", expanded=True):
-        model_name = st.selectbox(
-            "Select model",
-            model_list,
+            prompt_name = st.selectbox(
+                "Select system prompt",
+                prompt_names,
+            )
+
+            selected_prompt = prompts_dict[prompt_name]
+            st.write("➡️ " + selected_prompt["description"])
+
+            user_system_message = st.text_area(
+                label="System prompt",
+                value=selected_prompt["prompt"],
+                help="Feel free to update system prompt.",
+                height=300,
+            )
+
+            user_temperature = st.slider(
+                "Temperature",
+                min_value=0.0,
+                max_value=2.0,
+                value=0.0,
+                step=0.25,
+                help="Set to 0.0 for deterministic responses.",
+            )
+    return model_name, user_system_message, user_temperature
+
+
+def setup_llm(model_name, user_temperature):
+    if model_dic[model_name] == "Anthropic":
+        llm = ChatAnthropic(
+            model=model_name,
+            temperature=user_temperature,
+            streaming=True,
         )
-
-        prompt_name = st.selectbox(
-            "Select system prompt",
-            prompt_names,
+    elif model_dic[model_name] == "Groq":
+        llm = ChatGroq(
+            model_name=model_name,
+            temperature=user_temperature,
+            streaming=True,
         )
-        selected_prompt = prompts_dict[prompt_name]
-        st.write("➡️ " + selected_prompt["description"])
-
-        user_system_message = st.text_area(
-            label="System prompt",
-            value=selected_prompt["prompt"],
-            help="Feel free to update system prompt.",
+    else:
+        llm = ChatOpenAI(
+            model_name=model_name,
+            temperature=user_temperature,
+            streaming=True,
         )
+    return llm
 
-        user_temperature = st.slider(
-            "Temperature",
-            min_value=0.0,
-            max_value=2.0,
-            value=0.0,
-            step=0.25,
-            help="Set to 0.0 for deterministic responses.",
-        )
 
-msgs = StreamlitChatMessageHistory()
-memory = ConversationBufferMemory(
-    chat_memory=msgs,
-    return_messages=True,
-)
-
-if model_dic[model_name] == "Anthropic":
-    llm = ChatAnthropic(
-        model=model_name,
-        temperature=user_temperature,
-        streaming=True,
-    )
-elif model_dic[model_name] == "Groq":
-    llm = ChatGroq(
-        model_name=model_name,
-        temperature=user_temperature,
-        streaming=True,
-    )
-else:
-    llm = ChatOpenAI(
-        model_name=model_name,
-        temperature=user_temperature,
-        streaming=True,
-    )
-
-template = (
-    user_system_message
-    + """
+def setup_conversation_chain(user_system_message, llm, memory):
+    template = (
+        user_system_message
+        + """
 The following is a conversation between a human and an AI.
-
 Current conversation:
 {history}
 human: {input}
 ai:"""
-)
-PROMPT = PromptTemplate(input_variables=["history", "input"], template=template)
+    )
+    PROMPT = PromptTemplate(input_variables=["history", "input"], template=template)
 
-conversation_chain = ConversationChain(
-    prompt=PROMPT,
-    llm=llm,
-    verbose=True,
-    memory=memory,
-)
+    conversation_chain = ConversationChain(
+        prompt=PROMPT,
+        llm=llm,
+        verbose=True,
+        memory=memory,
+    )
 
-# Initialize the chat history
-if len(msgs.messages) == 0:
+    return conversation_chain
+
+
+def display_chat_history(msgs):
+    avatars = {"human": "user", "ai": "assistant"}
+    for msg in msgs.messages:
+        st.chat_message(avatars[msg.type]).write(msg.content)
+
+
+def handle_user_query(conversation_chain):
+    if user_query := st.chat_input(placeholder="What is your question?"):
+        st.chat_message("user").write(user_query)
+
+        with st.chat_message("assistant"):
+
+            stream_handler = StreamHandler(st.empty())
+            response = conversation_chain.run(user_query, callbacks=[stream_handler])
+
+
+def clear_chat_history(msgs):
+    msgs.clear()
     msgs.add_ai_message("What is your question?")
 
-# Show the chat history
-avatars = {"human": "user", "ai": "assistant"}
-for msg in msgs.messages:
-    st.chat_message(avatars[msg.type]).write(msg.content)
 
-# User asks a question
-if user_query := st.chat_input(placeholder="What is your question?"):
-    st.chat_message("user").write(user_query)
+def clear_chat_button(msgs):
+    with st.sidebar:
+        st.button(
+            "Clear Chat",
+            help="Clear chat history",
+            on_click=lambda: clear_chat_history(msgs),
+            use_container_width=True,
+        )
 
-    with st.chat_message("assistant"):
 
-        stream_handler = StreamHandler(st.empty())
-        response = conversation_chain.run(user_query, callbacks=[stream_handler])
+def sidebar_faq():
+    with st.sidebar:
+        with st.expander("FAQ", expanded=True):
+            st.write(
+                "**Llama 3:** Meta's open-source flagship model. Llama3 is deployed by Groq (https://groq.com/), showcasing its impressive speed."
+            )
+            st.write("**GPT-4:** OpenAI's flagship model.")
+            st.write(
+                "**Claude-Opus:** Anthropic's flagship model with a 200K input window size."
+            )
+            st.write(
+                "**System prompts:** The examples are from Anthropic's prompt library. Visit https://docs.anthropic.com/claude/prompt-library for more examples."
+            )
 
-# # Use a single block for handling different user prompts
-# questions = [
-#     "I have business concerns. Do you want to listen?",
-#     "Can you analyze this policy proposal?",
-#     "What digital marketing strategies should we employ for our campaign?",
-#     "How can we optimize our election strategy?",
-# ]
 
-# # Generate buttons for each question
-# for question in questions:
-#     if st.sidebar.button(question):
-#         with st.chat_message("user"):
-#             st.write(question)
-#         with st.chat_message("assistant"):
+def main():
+    st.set_page_config(page_title="LLM Playground", page_icon="📖")
+    st.title("Large Language Model and Prompt Playground")
+    st.write("Try different LLMs and prompts sourced from Anthropic's library!")
 
-#             stream_handler = StreamHandler(st.empty())
-#             response = conversation_chain.run(question, callbacks=[stream_handler])
+    os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+    os.environ["ANTHROPIC_API_ID"] = st.secrets["ANTHROPIC_API_KEY"]
+    os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
 
-with st.sidebar:
+    prompts_dict, prompt_names = load_prompts()
+    model_name, user_system_message, user_temperature = setup_model_param(
+        prompts_dict, prompt_names
+    )
 
-    def clear_chat_history():
-        msgs.clear()
+    msgs = StreamlitChatMessageHistory()
+    memory = ConversationBufferMemory(
+        chat_memory=msgs,
+        return_messages=True,
+    )
+
+    llm = setup_llm(model_name, user_temperature)
+    conversation_chain = setup_conversation_chain(user_system_message, llm, memory)
+
+    # Initialize the chat history
+    if len(msgs.messages) == 0:
         msgs.add_ai_message("What is your question?")
 
-    st.button(
-        "Clear Chat",
-        help="Clear chat history",
-        on_click=clear_chat_history,
-        use_container_width=True,
-    )
+    display_chat_history(msgs)
+    handle_user_query(conversation_chain)
+
+    # # Use a single block for handling different user prompts
+    # questions = [
+    #     "I have business concerns. Do you want to listen?",
+    #     "Can you analyze this policy proposal?",
+    #     "What digital marketing strategies should we employ for our campaign?",
+    #     "How can we optimize our election strategy?",
+    # ]
+
+    # # Generate buttons for each question
+    # for question in questions:
+    #     if st.sidebar.button(question):
+    #         with st.chat_message("user"):
+    #             st.write(question)
+    #         with st.chat_message("assistant"):
+
+    #             stream_handler = StreamHandler(st.empty())
+    #             response = conversation_chain.run(question, callbacks=[stream_handler])
+
+    clear_chat_button(msgs)
+    sidebar_faq()
+
+
+if __name__ == "__main__":
+    main()
