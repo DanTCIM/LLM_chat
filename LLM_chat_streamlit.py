@@ -165,7 +165,7 @@ def sidebar_faq():
             st.write(
                 "**Llama 3:** Meta's open-source flagship model. Llama3 is deployed by Groq (https://groq.com/), showcasing its impressive speed."
             )
-            st.write("**GPT-4:** OpenAI's flagship model.")
+            st.write("**GPT-4o:** OpenAI's flagship model.")
             st.write(
                 "**Claude-Opus:** Anthropic's flagship model with a 200K input window size."
             )
