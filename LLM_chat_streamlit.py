@@ -15,14 +15,14 @@ from langchain.prompts.prompt import PromptTemplate
 model_list = [
     # "gpt-3.5-turbo",  # mid
     "llama3-70b-8192",  # fast
-    "gpt-4-turbo",  # large
+    "gpt-4o",  # large
     # "claude-3-sonnet-20240229",  # mid
     "claude-3-opus-20240229",  # large
 ]
 
 model_dic = {
     "gpt-3.5-turbo": "OpenAI",
-    "gpt-4-turbo": "OpenAI",
+    "gpt-4o": "OpenAI",
     "claude-3-opus-20240229": "Anthropic",
     "claude-3-sonnet-20240229": "Anthropic",
     "llama3-70b-8192": "Groq",
