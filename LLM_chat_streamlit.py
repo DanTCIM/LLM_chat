@@ -160,11 +160,11 @@ def sidebar_faq():
     with st.sidebar:
         with st.expander("**FAQ**", expanded=True):
             st.write(
-                "**Llama 3:** Meta's open-source flagship model. Llama3 is deployed by Groq (https://groq.com/), showcasing its impressive speed."
+                "**Claude-3.5-Sonnet:** Anthropic's flagship model with a 200K input window size."
             )
             st.write("**GPT-4o:** OpenAI's flagship model.")
             st.write(
-                "**Claude-3.5-Sonnet:** Anthropic's flagship model with a 200K input window size."
+                "**Llama 3:** Meta's open-source flagship model. Llama3 is deployed by Groq (https://groq.com/), showcasing its impressive speed."
             )
             st.write(
                 "**System prompts:** The examples are from Anthropic's prompt library. Visit https://docs.anthropic.com/claude/prompt-library for more examples."
