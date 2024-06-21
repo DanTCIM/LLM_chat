@@ -14,17 +14,14 @@ from langchain.prompts.prompt import PromptTemplate
 # Define variables for inputs
 model_list = [
     # "gpt-3.5-turbo",  # mid
-    "llama3-70b-8192",  # fast
+    "claude-3-5-sonnet-20240620",  # large
     "gpt-4o",  # large
-    # "claude-3-sonnet-20240229",  # mid
-    "claude-3-opus-20240229",  # large
+    "llama3-70b-8192",  # fast
 ]
 
 model_dic = {
-    "gpt-3.5-turbo": "OpenAI",
+    "claude-3-5-sonnet-20240620": "Anthropic",
     "gpt-4o": "OpenAI",
-    "claude-3-opus-20240229": "Anthropic",
-    "claude-3-sonnet-20240229": "Anthropic",
     "llama3-70b-8192": "Groq",
 }
 
@@ -167,7 +164,7 @@ def sidebar_faq():
             )
             st.write("**GPT-4o:** OpenAI's flagship model.")
             st.write(
-                "**Claude-Opus:** Anthropic's flagship model with a 200K input window size."
+                "**Claude-3.5-Sonnet:** Anthropic's flagship model with a 200K input window size."
             )
             st.write(
                 "**System prompts:** The examples are from Anthropic's prompt library. Visit https://docs.anthropic.com/claude/prompt-library for more examples."
