@@ -14,13 +14,13 @@ from langchain.prompts.prompt import PromptTemplate
 # Define variables for inputs
 model_list = [
     # "gpt-3.5-turbo",  # mid
-    "claude-3-5-sonnet-20240620",  # large
+    "claude-3-7-sonnet-20250219",  # large
     "gpt-4o",  # large
     "llama3-70b-8192",  # fast
 ]
 
 model_dic = {
-    "claude-3-5-sonnet-20240620": "Anthropic",
+    "claude-3-7-sonnet-20250219": "Anthropic",
     "gpt-4o": "OpenAI",
     "llama3-70b-8192": "Groq",
 }
@@ -159,9 +159,7 @@ def clear_chat_button(msgs):
 def sidebar_faq():
     with st.sidebar:
         with st.expander("**FAQ**", expanded=True):
-            st.write(
-                "**Claude-3.5-Sonnet:** Anthropic's flagship model with a 200K input window size."
-            )
+            st.write("**Claude-3.7-Sonnet:** Anthropic's flagship model.")
             st.write("**GPT-4o:** OpenAI's flagship model.")
             st.write(
                 "**Llama 3:** Meta's open-source flagship model. Llama3 is deployed by Groq (https://groq.com/), showcasing its impressive speed."
